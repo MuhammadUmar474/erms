@@ -3,23 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import AdminUnitForm from "@/components/admin-unit-form";
 import type { Project, Unit, UnitWithProject } from "@/lib/types";
 import {
@@ -129,33 +118,44 @@ export default function AdminPage() {
   // --- Login screen ---
   if (!authenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30">
-        <div className="w-full max-w-sm p-6 bg-card rounded-lg border shadow-sm">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-primary">R.</h1>
-            <p className="text-sm text-muted-foreground">Admin Panel</p>
-          </div>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <Label htmlFor="password">Admin Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
-                autoFocus
-              />
-              {authError && (
-                <p className="text-sm text-destructive mt-1">
-                  Incorrect password.
-                </p>
-              )}
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="w-full max-w-xs">
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+            <div className="text-center mb-5">
+              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-black font-bold text-sm mx-auto mb-2">
+                R.
+              </div>
+              <h1 className="text-sm font-semibold">Admin Panel</h1>
+              <p className="text-[11px] text-gray-400">Enter password to continue</p>
             </div>
-            <Button type="submit" className="w-full">
-              Login
-            </Button>
-          </form>
+            <form onSubmit={handleLogin} className="space-y-3">
+              <div>
+                <label htmlFor="password" className="text-[10px] font-medium text-gray-500 mb-1 block">
+                  Password
+                </label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter admin password"
+                  className="h-9 text-xs bg-gray-50/80 border-gray-200"
+                  autoFocus
+                />
+                {authError && (
+                  <p className="text-[11px] text-red-500 mt-1">
+                    Incorrect password.
+                  </p>
+                )}
+              </div>
+              <Button type="submit" className="w-full h-9 text-xs font-semibold">
+                Login
+              </Button>
+            </form>
+          </div>
+          <p className="text-center text-[10px] text-gray-400 mt-3">
+            Reportage Properties &mdash; ERMS
+          </p>
         </div>
       </div>
     );
@@ -163,17 +163,20 @@ export default function AdminPage() {
 
   // --- Admin dashboard ---
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="border-b bg-primary text-primary-foreground">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">R.</h1>
-            <p className="text-sm opacity-80">Admin Panel</p>
+      <header className="h-12 border-b border-gray-200 bg-white">
+        <div className="h-full max-w-7xl mx-auto px-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 bg-primary rounded-md flex items-center justify-center text-black font-bold text-xs">
+              R.
+            </div>
+            <h1 className="text-sm font-semibold">Admin Panel</h1>
           </div>
           <Button
-            variant="secondary"
+            variant="outline"
             size="sm"
+            className="h-7 text-xs"
             onClick={() => setAuthenticated(false)}
           >
             Logout
@@ -181,29 +184,39 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-4">
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
-          <Button
-            variant={tab === "units" ? "default" : "outline"}
+        <div className="flex gap-1 mb-4">
+          <button
             onClick={() => setTab("units")}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              tab === "units"
+                ? "bg-black text-white"
+                : "text-gray-500 hover:bg-gray-100"
+            }`}
           >
             Units ({units.length})
-          </Button>
-          <Button
-            variant={tab === "projects" ? "default" : "outline"}
+          </button>
+          <button
             onClick={() => setTab("projects")}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              tab === "projects"
+                ? "bg-black text-white"
+                : "text-gray-500 hover:bg-gray-100"
+            }`}
           >
             Projects ({projects.length})
-          </Button>
+          </button>
         </div>
 
         {/* Units Tab */}
         {tab === "units" && (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Manage Units</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold">Manage Units</h2>
               <Button
+                size="sm"
+                className="h-8 text-xs gap-1"
                 onClick={() => {
                   setEditingUnit(null);
                   setUnitFormOpen(true);
@@ -213,82 +226,70 @@ export default function AdminPage() {
               </Button>
             </div>
 
-            <div className="rounded-md border bg-card overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Unit #</TableHead>
-                    <TableHead>Project</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Bedrooms</TableHead>
-                    <TableHead className="text-right">Price (AED)</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {units.map((unit) => (
-                    <TableRow key={unit.id}>
-                      <TableCell className="font-medium">
-                        {unit.unit_number}
-                      </TableCell>
-                      <TableCell>
-                        {unit.projects?.name ?? unit.project_id}
-                      </TableCell>
-                      <TableCell>{unit.category}</TableCell>
-                      <TableCell>{unit.bedrooms}</TableCell>
-                      <TableCell className="text-right">
-                        {unit.price_aed.toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <select
-                          value={unit.status}
-                          onChange={(e) =>
-                            handleStatusChange(unit.id, e.target.value)
-                          }
-                          className="text-xs border rounded px-2 py-1"
-                        >
-                          <option value="Available">Available</option>
-                          <option value="Reserved">Reserved</option>
-                          <option value="Sold">Sold</option>
-                        </select>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setEditingUnit(unit);
-                              setUnitFormOpen(true);
-                            }}
+            <div className="rounded-lg border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-black text-primary">
+                      <th className="px-3 py-2.5 text-left font-semibold tracking-wider">UNIT #</th>
+                      <th className="px-3 py-2.5 text-left font-semibold tracking-wider">PROJECT</th>
+                      <th className="px-3 py-2.5 text-left font-semibold tracking-wider">TYPE</th>
+                      <th className="px-3 py-2.5 text-left font-semibold tracking-wider">BEDROOMS</th>
+                      <th className="px-3 py-2.5 text-right font-semibold tracking-wider">PRICE (AED)</th>
+                      <th className="px-3 py-2.5 text-left font-semibold tracking-wider">STATUS</th>
+                      <th className="px-3 py-2.5 text-right font-semibold tracking-wider">ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {units.map((unit, idx) => (
+                      <tr key={unit.id} className={idx % 2 === 1 ? "bg-gray-50/50" : "bg-white"}>
+                        <td className="px-3 py-2 font-medium">{unit.unit_number}</td>
+                        <td className="px-3 py-2">{unit.projects?.name ?? unit.project_id}</td>
+                        <td className="px-3 py-2">{unit.category}</td>
+                        <td className="px-3 py-2">{unit.bedrooms}</td>
+                        <td className="px-3 py-2 text-right">{unit.price_aed.toLocaleString()}</td>
+                        <td className="px-3 py-2">
+                          <select
+                            value={unit.status}
+                            onChange={(e) => handleStatusChange(unit.id, e.target.value)}
+                            className="text-[10px] border border-gray-200 rounded px-1.5 py-0.5 bg-white"
                           >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive"
-                            onClick={() => handleDeleteUnit(unit.id)}
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {units.length === 0 && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={7}
-                        className="text-center py-8 text-muted-foreground"
-                      >
-                        No units yet. Add your first unit.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                            <option value="Available">Available</option>
+                            <option value="Reserved">Reserved</option>
+                            <option value="Sold">Sold</option>
+                          </select>
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <div className="flex justify-end gap-0.5">
+                            <button
+                              className="px-2 py-1 rounded text-gray-500 hover:text-black hover:bg-gray-100 transition-colors"
+                              onClick={() => {
+                                setEditingUnit(unit);
+                                setUnitFormOpen(true);
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="px-2 py-1 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                              onClick={() => handleDeleteUnit(unit.id)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {units.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="text-center py-8 text-gray-400">
+                          No units yet. Add your first unit.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <AdminUnitForm
@@ -307,9 +308,11 @@ export default function AdminPage() {
         {/* Projects Tab */}
         {tab === "projects" && (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Manage Projects</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold">Manage Projects</h2>
               <Button
+                size="sm"
+                className="h-8 text-xs gap-1"
                 onClick={() => {
                   setEditingProject(null);
                   setProjectFormOpen(true);
@@ -319,66 +322,58 @@ export default function AdminPage() {
               </Button>
             </div>
 
-            <div className="rounded-md border bg-card overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Handover</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {projects.map((project) => (
-                    <TableRow key={project.id}>
-                      <TableCell className="font-mono text-sm">
-                        {project.id}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {project.name}
-                      </TableCell>
-                      <TableCell>{project.location}</TableCell>
-                      <TableCell>{project.type}</TableCell>
-                      <TableCell>{project.handover ?? "—"}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setEditingProject(project);
-                              setProjectFormOpen(true);
-                            }}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive"
-                            onClick={() => handleDeleteProject(project.id)}
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {projects.length === 0 && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="text-center py-8 text-muted-foreground"
-                      >
-                        No projects yet. Add your first project.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+            <div className="rounded-lg border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-black text-primary">
+                      <th className="px-3 py-2.5 text-left font-semibold tracking-wider">ID</th>
+                      <th className="px-3 py-2.5 text-left font-semibold tracking-wider">NAME</th>
+                      <th className="px-3 py-2.5 text-left font-semibold tracking-wider">LOCATION</th>
+                      <th className="px-3 py-2.5 text-left font-semibold tracking-wider">TYPE</th>
+                      <th className="px-3 py-2.5 text-left font-semibold tracking-wider">HANDOVER</th>
+                      <th className="px-3 py-2.5 text-right font-semibold tracking-wider">ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {projects.map((project, idx) => (
+                      <tr key={project.id} className={idx % 2 === 1 ? "bg-gray-50/50" : "bg-white"}>
+                        <td className="px-3 py-2 font-mono">{project.id}</td>
+                        <td className="px-3 py-2 font-medium">{project.name}</td>
+                        <td className="px-3 py-2">{project.location}</td>
+                        <td className="px-3 py-2">{project.type}</td>
+                        <td className="px-3 py-2">{project.handover ?? "\u2014"}</td>
+                        <td className="px-3 py-2 text-right">
+                          <div className="flex justify-end gap-0.5">
+                            <button
+                              className="px-2 py-1 rounded text-gray-500 hover:text-black hover:bg-gray-100 transition-colors"
+                              onClick={() => {
+                                setEditingProject(project);
+                                setProjectFormOpen(true);
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="px-2 py-1 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                              onClick={() => handleDeleteProject(project.id)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {projects.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="text-center py-8 text-gray-400">
+                          No projects yet. Add your first project.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* Project Form Dialog */}
@@ -391,65 +386,67 @@ export default function AdminPage() {
                 }
               }}
             >
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="sm:max-w-sm">
                 <DialogHeader>
-                  <DialogTitle>
+                  <DialogTitle className="text-sm font-semibold">
                     {editingProject ? "Edit Project" : "Add New Project"}
                   </DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleProjectSubmit} className="space-y-4">
+                <form onSubmit={handleProjectSubmit} className="space-y-3">
                   <div>
-                    <Label htmlFor="proj_id">Project ID *</Label>
+                    <label className="text-[10px] font-medium text-gray-500 mb-1 block">Project ID *</label>
                     <Input
-                      id="proj_id"
                       name="id"
                       defaultValue={editingProject?.id ?? ""}
                       placeholder="e.g. VH, RH, T1"
                       required
                       disabled={!!editingProject}
+                      className="h-8 text-xs"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="proj_name">Name *</Label>
+                    <label className="text-[10px] font-medium text-gray-500 mb-1 block">Name *</label>
                     <Input
-                      id="proj_name"
                       name="name"
                       defaultValue={editingProject?.name ?? ""}
                       placeholder="e.g. Verdana 8"
                       required
+                      className="h-8 text-xs"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="proj_location">Location</Label>
+                    <label className="text-[10px] font-medium text-gray-500 mb-1 block">Location</label>
                     <Input
-                      id="proj_location"
                       name="location"
                       defaultValue={editingProject?.location ?? ""}
                       placeholder="e.g. Dubai Investment Park"
+                      className="h-8 text-xs"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="proj_type">Type</Label>
+                    <label className="text-[10px] font-medium text-gray-500 mb-1 block">Type</label>
                     <Input
-                      id="proj_type"
                       name="type"
                       defaultValue={editingProject?.type ?? ""}
                       placeholder="e.g. Apartments & Townhouses"
+                      className="h-8 text-xs"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="proj_handover">Handover</Label>
+                    <label className="text-[10px] font-medium text-gray-500 mb-1 block">Handover</label>
                     <Input
-                      id="proj_handover"
                       name="handover"
                       defaultValue={editingProject?.handover ?? ""}
                       placeholder="e.g. Q4 2027"
+                      className="h-8 text-xs"
                     />
                   </div>
-                  <div className="flex justify-end gap-2 pt-2">
+                  <div className="flex justify-end gap-2 pt-1">
                     <Button
                       type="button"
                       variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
                       onClick={() => {
                         setProjectFormOpen(false);
                         setEditingProject(null);
@@ -457,7 +454,7 @@ export default function AdminPage() {
                     >
                       Cancel
                     </Button>
-                    <Button type="submit">
+                    <Button type="submit" size="sm" className="h-8 text-xs">
                       {editingProject ? "Update" : "Add Project"}
                     </Button>
                   </div>

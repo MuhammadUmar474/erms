@@ -6,10 +6,10 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { FileDown } from "lucide-react";
 import type { UnitWithProject } from "@/lib/types";
 
 interface UnitDetailModalProps {
@@ -19,11 +19,16 @@ interface UnitDetailModalProps {
 }
 
 function fmt(n: number): string {
-  return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
-function fmtPrice(n: number): string {
-  return `AED ${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+function DetailRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+  return (
+    <div className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
+      <span className="text-xs text-gray-500">{label}</span>
+      <span className={`text-xs ${bold ? "font-semibold" : ""}`}>{value}</span>
+    </div>
+  );
 }
 
 export default function UnitDetailModal({
@@ -63,106 +68,81 @@ export default function UnitDetailModal({
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="sm:max-w-lg overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="text-xl">{unit.unit_number}</SheetTitle>
-          <p className="text-sm text-muted-foreground">
+      <SheetContent className="w-full sm:max-w-sm !gap-0 !p-0 overflow-y-auto">
+        {/* Header */}
+        <SheetHeader className="!p-4 !pb-3 border-b border-gray-100">
+          <SheetTitle className="!text-sm font-bold">{unit.unit_number}</SheetTitle>
+          <SheetDescription className="!text-[11px] !mt-0">
             {unit.projects?.name ?? unit.project_id} — {unit.projects?.location}
-          </p>
+          </SheetDescription>
+
+          {/* Tags */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-2">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/15 text-black">
+              {unit.category}
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium border border-gray-200 text-gray-700">
+              {unit.bedrooms}
+            </span>
+            {unit.sub_type && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-medium border border-gray-200 text-gray-700">
+                Type {unit.sub_type}
+              </span>
+            )}
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/15 text-black">
+              {unit.status}
+            </span>
+          </div>
         </SheetHeader>
 
-        <div className="mt-6 space-y-6">
-          <div className="flex items-center gap-2">
-            <Badge>{unit.category}</Badge>
-            <Badge variant="outline">{unit.bedrooms}</Badge>
-            {unit.sub_type && <Badge variant="outline">Type {unit.sub_type}</Badge>}
-            <Badge
-              variant={
-                unit.status === "Available"
-                  ? "default"
-                  : unit.status === "Reserved"
-                  ? "secondary"
-                  : "destructive"
-              }
-            >
-              {unit.status}
-            </Badge>
-          </div>
+        {/* Price highlight */}
+        <div className="px-4 py-3 bg-gray-50/80 border-b border-gray-100">
+          <p className="text-[10px] text-gray-500 mb-0.5">Price</p>
+          <p className="text-lg font-bold text-primary leading-tight">
+            AED {fmt(unit.price_aed)}
+          </p>
+          <p className="text-[10px] text-gray-400 mt-0.5">
+            AED {fmt(Math.round(pricePerSqft))} / sq.ft
+          </p>
+        </div>
 
-          <Separator />
-
+        {/* Details */}
+        <div className="px-4 py-3 space-y-3">
+          {/* Unit Details */}
           <div>
-            <h4 className="font-semibold mb-3">Unit Details</h4>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-              {unit.floor && (
-                <>
-                  <dt className="text-muted-foreground">Floor / Plot</dt>
-                  <dd>{unit.floor}</dd>
-                </>
-              )}
-              {unit.view && (
-                <>
-                  <dt className="text-muted-foreground">View</dt>
-                  <dd>{unit.view}</dd>
-                </>
-              )}
-              {unit.payment_plan && (
-                <>
-                  <dt className="text-muted-foreground">Payment Plan</dt>
-                  <dd>{unit.payment_plan}</dd>
-                </>
-              )}
-              {unit.projects?.handover && (
-                <>
-                  <dt className="text-muted-foreground">Handover</dt>
-                  <dd>{unit.projects.handover}</dd>
-                </>
-              )}
-            </dl>
+            <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+              Unit Details
+            </h4>
+            {unit.floor && <DetailRow label="Floor / Plot" value={unit.floor} />}
+            {unit.view && <DetailRow label="View" value={unit.view} />}
+            {unit.payment_plan && <DetailRow label="Payment Plan" value={unit.payment_plan} />}
+            {unit.projects?.handover && (
+              <DetailRow label="Handover" value={unit.projects.handover} />
+            )}
           </div>
 
-          <Separator />
-
+          {/* Area */}
           <div>
-            <h4 className="font-semibold mb-3">Area Breakdown</h4>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-              <dt className="text-muted-foreground">Internal Area</dt>
-              <dd>{fmt(unit.internal_area)} sq.ft</dd>
-              <dt className="text-muted-foreground">External Area</dt>
-              <dd>{fmt(unit.external_area)} sq.ft</dd>
-              <dt className="text-muted-foreground font-medium">Total Area</dt>
-              <dd className="font-medium">{fmt(unit.total_area)} sq.ft</dd>
-              {unit.plot_area && (
-                <>
-                  <dt className="text-muted-foreground">Plot Area</dt>
-                  <dd>{fmt(unit.plot_area)} sq.ft</dd>
-                </>
-              )}
-            </dl>
+            <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+              Area Breakdown
+            </h4>
+            <DetailRow label="Internal Area" value={`${fmt(unit.internal_area)} sq.ft`} />
+            <DetailRow label="External Area" value={`${fmt(unit.external_area)} sq.ft`} />
+            <DetailRow label="Total Area" value={`${fmt(unit.total_area)} sq.ft`} bold />
+            {unit.plot_area && (
+              <DetailRow label="Plot Area" value={`${fmt(unit.plot_area)} sq.ft`} />
+            )}
           </div>
+        </div>
 
-          <Separator />
-
-          <div>
-            <h4 className="font-semibold mb-3">Pricing</h4>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-              <dt className="text-muted-foreground">Price</dt>
-              <dd className="text-lg font-bold text-primary">
-                {fmtPrice(unit.price_aed)}
-              </dd>
-              <dt className="text-muted-foreground">Price / sq.ft</dt>
-              <dd>{fmtPrice(pricePerSqft)}</dd>
-            </dl>
-          </div>
-
-          <Separator />
-
+        {/* Action */}
+        <div className="px-4 pb-4 pt-1">
           <Button
-            className="w-full"
-            size="lg"
+            className="w-full h-9 text-xs font-semibold gap-2"
             onClick={handleGenerateOffer}
             disabled={generating}
           >
+            <FileDown size={14} />
             {generating ? "Generating..." : "Generate Sales Offer (PDF)"}
           </Button>
         </div>
