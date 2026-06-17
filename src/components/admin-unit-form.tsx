@@ -8,15 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type { Project, Unit } from "@/lib/types";
 
 interface AdminUnitFormProps {
@@ -31,6 +23,11 @@ const BEDROOM_OPTIONS = ["Studio", "1BR", "2BR", "3BR", "4BR", "5BR"];
 const CATEGORY_OPTIONS = ["Apartment", "Townhouse"];
 const STATUS_OPTIONS = ["Available", "Reserved", "Sold"];
 
+const labelClass = "text-[11px] font-medium text-gray-500 block";
+const inputClass = "!h-7 text-[11px] bg-gray-50/80 border-gray-200 mt-1 !ring-0 !ring-offset-0 focus-visible:!ring-1 focus-visible:!ring-gray-300 focus-visible:!border-gray-300";
+const selectClass =
+  "flex h-7 w-full rounded-lg border border-gray-200 bg-gray-50/80 px-2 text-[11px] outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-300 mt-1";
+
 export default function AdminUnitForm({
   open,
   onClose,
@@ -39,25 +36,48 @@ export default function AdminUnitForm({
   unit,
 }: AdminUnitFormProps) {
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = (fd: FormData): Record<string, string> => {
+    const errs: Record<string, string> = {};
+    if (!(fd.get("unit_number") as string)?.trim()) errs.unit_number = "Required";
+    if (!fd.get("project_id")) errs.project_id = "Select a project";
+    if (!fd.get("bedrooms")) errs.bedrooms = "Select bedrooms";
+    const internalArea = parseFloat(fd.get("internal_area") as string);
+    const externalArea = parseFloat(fd.get("external_area") as string);
+    const totalArea = parseFloat(fd.get("total_area") as string);
+    const price = parseFloat(fd.get("price_aed") as string);
+    if (!internalArea || internalArea <= 0) errs.internal_area = "Must be > 0";
+    if (isNaN(externalArea) || externalArea < 0) errs.external_area = "Must be >= 0";
+    if (!totalArea || totalArea <= 0) errs.total_area = "Must be > 0";
+    if (!price || price <= 0) errs.price_aed = "Must be > 0";
+    return errs;
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
     const fd = new FormData(e.currentTarget);
+    const validationErrors = validate(fd);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+    setErrors({});
+    setLoading(true);
     const data: Record<string, unknown> = {
-      unit_number: fd.get("unit_number"),
+      unit_number: (fd.get("unit_number") as string).trim(),
       project_id: fd.get("project_id"),
       category: fd.get("category"),
       bedrooms: fd.get("bedrooms"),
-      sub_type: fd.get("sub_type") || null,
-      view: fd.get("view") || null,
-      floor: fd.get("floor") || null,
+      sub_type: (fd.get("sub_type") as string)?.trim() || null,
+      view: (fd.get("view") as string)?.trim() || null,
+      floor: (fd.get("floor") as string)?.trim() || null,
       internal_area: parseFloat(fd.get("internal_area") as string) || 0,
       external_area: parseFloat(fd.get("external_area") as string) || 0,
       total_area: parseFloat(fd.get("total_area") as string) || 0,
       plot_area: fd.get("plot_area") ? parseFloat(fd.get("plot_area") as string) : null,
       price_aed: parseFloat(fd.get("price_aed") as string) || 0,
-      payment_plan: fd.get("payment_plan") || null,
+      payment_plan: (fd.get("payment_plan") as string)?.trim() || null,
       status: fd.get("status"),
     };
     try {
@@ -71,192 +91,216 @@ export default function AdminUnitForm({
     }
   };
 
+  const fieldError = (name: string) =>
+    errors[name] ? <p className="text-[10px] text-red-500 mt-0.5">{errors[name]}</p> : null;
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{unit ? "Edit Unit" : "Add New Unit"}</DialogTitle>
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="px-4 pt-4 pb-2.5 border-b border-gray-100">
+          <DialogTitle className="text-sm font-semibold">
+            {unit ? "Edit Unit" : "Add New Unit"}
+          </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+
+        <form onSubmit={handleSubmit} className="px-4 pb-4 pt-2.5">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
+            {/* Row 1 */}
             <div>
-              <Label htmlFor="unit_number">Unit Number *</Label>
+              <label className={labelClass}>Unit Number *</label>
               <Input
-                id="unit_number"
                 name="unit_number"
                 defaultValue={unit?.unit_number ?? ""}
                 required
+                className={`${inputClass} ${errors.unit_number ? "!border-red-300" : ""}`}
               />
+              {fieldError("unit_number")}
             </div>
             <div>
-              <Label htmlFor="project_id">Project *</Label>
+              <label className={labelClass}>Project *</label>
               <select
-                id="project_id"
                 name="project_id"
                 defaultValue={unit?.project_id ?? ""}
                 required
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+                className={`${selectClass} ${errors.project_id ? "!border-red-300" : ""}`}
               >
                 <option value="">Select project</option>
                 {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
+                  <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
+              {fieldError("project_id")}
             </div>
+
+            {/* Row 2 */}
             <div>
-              <Label htmlFor="category">Category *</Label>
+              <label className={labelClass}>Category *</label>
               <select
-                id="category"
                 name="category"
                 defaultValue={unit?.category ?? "Apartment"}
                 required
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+                className={selectClass}
               >
                 {CATEGORY_OPTIONS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
+                  <option key={c} value={c}>{c}</option>
                 ))}
               </select>
             </div>
             <div>
-              <Label htmlFor="bedrooms">Bedrooms *</Label>
+              <label className={labelClass}>Bedrooms *</label>
               <select
-                id="bedrooms"
                 name="bedrooms"
                 defaultValue={unit?.bedrooms ?? ""}
                 required
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+                className={`${selectClass} ${errors.bedrooms ? "!border-red-300" : ""}`}
               >
                 <option value="">Select</option>
                 {BEDROOM_OPTIONS.map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
+                  <option key={b} value={b}>{b}</option>
                 ))}
               </select>
+              {fieldError("bedrooms")}
             </div>
+
+            {/* Row 3 */}
             <div>
-              <Label htmlFor="sub_type">Sub-type</Label>
+              <label className={labelClass}>Sub-type</label>
               <Input
-                id="sub_type"
                 name="sub_type"
                 defaultValue={unit?.sub_type ?? ""}
                 placeholder="A, B, C, D..."
+                className={inputClass}
               />
             </div>
             <div>
-              <Label htmlFor="view">View</Label>
+              <label className={labelClass}>View</label>
               <Input
-                id="view"
                 name="view"
                 defaultValue={unit?.view ?? ""}
-                placeholder="Pool, Street, Community..."
+                placeholder="Pool, Street..."
+                className={inputClass}
               />
             </div>
+
+            {/* Row 4 */}
             <div>
-              <Label htmlFor="floor">Floor / Plot</Label>
+              <label className={labelClass}>Floor / Plot</label>
               <Input
-                id="floor"
                 name="floor"
                 defaultValue={unit?.floor ?? ""}
+                className={inputClass}
               />
             </div>
             <div>
-              <Label htmlFor="status">Status *</Label>
+              <label className={labelClass}>Status *</label>
               <select
-                id="status"
                 name="status"
                 defaultValue={unit?.status ?? "Available"}
                 required
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+                className={selectClass}
               >
                 {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
+                  <option key={s} value={s}>{s}</option>
                 ))}
               </select>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
+            {/* Divider */}
+            <div className="col-span-2 border-t border-gray-100 my-0.5" />
+
+            {/* Area fields */}
             <div>
-              <Label htmlFor="internal_area">Internal Area (sq.ft) *</Label>
+              <label className={labelClass}>Internal Area (sq.ft) *</label>
               <Input
-                id="internal_area"
                 name="internal_area"
                 type="number"
                 step="0.01"
+                min="0"
                 defaultValue={unit?.internal_area ?? ""}
                 required
+                className={`${inputClass} ${errors.internal_area ? "!border-red-300" : ""}`}
               />
+              {fieldError("internal_area")}
             </div>
             <div>
-              <Label htmlFor="external_area">External Area (sq.ft) *</Label>
+              <label className={labelClass}>External Area (sq.ft) *</label>
               <Input
-                id="external_area"
                 name="external_area"
                 type="number"
                 step="0.01"
+                min="0"
                 defaultValue={unit?.external_area ?? ""}
                 required
+                className={`${inputClass} ${errors.external_area ? "!border-red-300" : ""}`}
               />
+              {fieldError("external_area")}
             </div>
             <div>
-              <Label htmlFor="total_area">Total Area (sq.ft) *</Label>
+              <label className={labelClass}>Total Area (sq.ft) *</label>
               <Input
-                id="total_area"
                 name="total_area"
                 type="number"
                 step="0.01"
+                min="0"
                 defaultValue={unit?.total_area ?? ""}
                 required
+                className={`${inputClass} ${errors.total_area ? "!border-red-300" : ""}`}
               />
+              {fieldError("total_area")}
             </div>
             <div>
-              <Label htmlFor="plot_area">Plot Area (sq.ft)</Label>
+              <label className={labelClass}>Plot Area (sq.ft)</label>
               <Input
-                id="plot_area"
                 name="plot_area"
                 type="number"
                 step="0.01"
+                min="0"
                 defaultValue={unit?.plot_area ?? ""}
                 placeholder="Townhouses only"
+                className={inputClass}
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
+            {/* Divider */}
+            <div className="col-span-2 border-t border-gray-100 my-0.5" />
+
+            {/* Pricing */}
             <div>
-              <Label htmlFor="price_aed">Price (AED) *</Label>
+              <label className={labelClass}>Price (AED) *</label>
               <Input
-                id="price_aed"
                 name="price_aed"
                 type="number"
                 step="0.01"
+                min="0"
                 defaultValue={unit?.price_aed ?? ""}
                 required
+                className={`${inputClass} ${errors.price_aed ? "!border-red-300" : ""}`}
               />
+              {fieldError("price_aed")}
             </div>
             <div>
-              <Label htmlFor="payment_plan">Payment Plan</Label>
+              <label className={labelClass}>Payment Plan</label>
               <Input
-                id="payment_plan"
                 name="payment_plan"
                 defaultValue={unit?.payment_plan ?? ""}
                 placeholder="Normal, Investor 30%..."
+                className={inputClass}
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
+          {/* Actions */}
+          <div className="flex justify-end gap-2 pt-3 mt-2 border-t border-gray-100">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={onClose}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" size="sm" className="h-8 text-xs" disabled={loading}>
               {loading ? "Saving..." : unit ? "Update Unit" : "Add Unit"}
             </Button>
           </div>

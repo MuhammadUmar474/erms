@@ -6,6 +6,7 @@ import { getCached, setCached } from "@/lib/cache";
 interface UseCachedDataOptions<T> {
   cacheKey: string;
   fetcher: () => Promise<T>;
+  enabled?: boolean;
 }
 
 interface UseCachedDataResult<T> {
@@ -19,12 +20,13 @@ interface UseCachedDataResult<T> {
 export function useCachedData<T>({
   cacheKey,
   fetcher,
+  enabled = true,
 }: UseCachedDataOptions<T>): UseCachedDataResult<T> {
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRevalidating, setIsRevalidating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const hasMounted = useRef(false);
+  const hasInitialized = useRef(false);
 
   const fetchFresh = useCallback(async (hasCachedData: boolean) => {
     if (hasCachedData) {
@@ -48,8 +50,8 @@ export function useCachedData<T>({
   }, [cacheKey, fetcher]);
 
   useEffect(() => {
-    if (hasMounted.current) return;
-    hasMounted.current = true;
+    if (!enabled || hasInitialized.current) return;
+    hasInitialized.current = true;
 
     // Step 1: Try to load from cache immediately
     const cached = getCached<T>(cacheKey);
@@ -64,7 +66,7 @@ export function useCachedData<T>({
       setIsLoading(true);
       fetchFresh(false);
     }
-  }, [cacheKey, fetchFresh]);
+  }, [enabled, cacheKey, fetchFresh]);
 
   const refresh = useCallback(() => {
     fetchFresh(data !== null);
