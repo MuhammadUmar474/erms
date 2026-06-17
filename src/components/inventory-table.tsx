@@ -133,13 +133,13 @@ export default function InventoryTable({
   return (
     <div>
       {/* Results header */}
-      <div className="flex items-center justify-between mb-2.5">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 text-xs">
           <span className="text-primary font-bold">{sorted.length} Units Found</span>
           <span className="text-gray-300">|</span>
           <span className="text-gray-500">Showing all available units</span>
         </div>
-        <div className="flex items-center gap-1.5 text-xs">
+        <div className="flex items-center gap-1.5 text-xs relative z-10">
           <span className="text-gray-500">Sort by:</span>
           <Select
             value={sortKey}
@@ -148,10 +148,10 @@ export default function InventoryTable({
               setSortDir("asc");
             }}
           >
-            <SelectTrigger className="w-[150px] h-7 text-xs bg-white">
+            <SelectTrigger className="w-[160px] h-7 text-xs bg-white">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent alignItemWithTrigger={false}>
               <SelectItem value="unit_number">Unit No. (A - Z)</SelectItem>
               <SelectItem value="price_aed">Price (Low - High)</SelectItem>
               <SelectItem value="total_area">Area (Small - Large)</SelectItem>

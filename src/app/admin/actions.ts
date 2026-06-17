@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase";
 
 export async function verifyAdminPassword(password: string): Promise<boolean> {
@@ -33,6 +34,7 @@ export async function createProject(project: {
 }) {
   const { error } = await supabase.from("projects").insert(project);
   if (error) throw error;
+  revalidatePath("/");
 }
 
 export async function updateProject(
@@ -41,11 +43,13 @@ export async function updateProject(
 ) {
   const { error } = await supabase.from("projects").update(updates).eq("id", id);
   if (error) throw error;
+  revalidatePath("/");
 }
 
 export async function deleteProject(id: string) {
   const { error } = await supabase.from("projects").delete().eq("id", id);
   if (error) throw error;
+  revalidatePath("/");
 }
 
 export async function createUnit(unit: {
@@ -66,6 +70,7 @@ export async function createUnit(unit: {
 }) {
   const { error } = await supabase.from("units").insert(unit);
   if (error) throw error;
+  revalidatePath("/");
 }
 
 export async function updateUnit(
@@ -74,9 +79,11 @@ export async function updateUnit(
 ) {
   const { error } = await supabase.from("units").update(updates).eq("id", id);
   if (error) throw error;
+  revalidatePath("/");
 }
 
 export async function deleteUnit(id: number) {
   const { error } = await supabase.from("units").delete().eq("id", id);
   if (error) throw error;
+  revalidatePath("/");
 }

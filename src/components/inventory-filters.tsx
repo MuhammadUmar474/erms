@@ -63,8 +63,8 @@ export default function InventoryFilters({
     filters.view !== "all";
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
-      <div className="grid grid-cols-4 gap-3 items-end">
+    <div className="bg-white border border-gray-200 rounded-lg px-5 py-4">
+      <div className="grid grid-cols-4 gap-4 items-end">
         <div>
           <label className="text-[10px] font-medium text-gray-500 mb-1 block">Project</label>
           <Select value={filters.project} onValueChange={(v) => update("project", v)}>
