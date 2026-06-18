@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
+import SplashScreen from "@/components/splash-screen";
 import "./globals.css";
 
 const roboto = Roboto({
@@ -23,7 +24,9 @@ export default function RootLayout({
       lang="en"
       className={`${roboto.variable} h-full antialiased`}
     >
-      <body className="min-h-screen">{children}</body>
+      <body className="min-h-screen">
+        <SplashScreen>{children}</SplashScreen>
+      </body>
     </html>
   );
 }
