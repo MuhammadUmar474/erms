@@ -6,7 +6,6 @@ import Link from "next/link";
 import Sidebar from "@/components/sidebar";
 import TopBar from "@/components/top-bar";
 import InventoryTable from "@/components/inventory-table";
-import UnitDetailModal from "@/components/unit-detail-modal";
 import { useCachedData } from "@/hooks/use-cached-data";
 import { supabase } from "@/lib/supabase";
 import { Search, RefreshCw } from "lucide-react";
@@ -63,8 +62,14 @@ export default function ProjectDetailPage() {
 
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [bedroomFilter, setBedroomFilter] = useState("all");
+  const [viewFilter, setViewFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("Available");
+  const [priceFilter, setPriceFilter] = useState("all");
   const [search, setSearch] = useState("");
-  const [selectedUnit, setSelectedUnit] = useState<UnitWithProject | null>(null);
+  const getUnitHref = useCallback(
+    (unit: UnitWithProject) => `/projects/${slug}/${encodeURIComponent(unit.unit_number)}`,
+    [slug]
+  );
 
   const fetcher = useCallback(async () => {
     const allUnits: UnitWithProject[] = [];
@@ -90,29 +95,50 @@ export default function ProjectDetailPage() {
     fetcher,
   });
 
-  // Filter to this project group's units
-  const projectUnits = useMemo(() => {
+  // All units in this project group
+  const allProjectUnits = useMemo(() => {
     if (!allUnits || !group) return [];
-    return allUnits.filter(
-      (u) => u.status === "Available" && group.match(u.projects?.name ?? "")
-    );
+    return allUnits.filter((u) => group.match(u.projects?.name ?? ""));
   }, [allUnits, group]);
 
-  // Derived stats
+  // Units after status + price filter (before table handles category/bedrooms/search)
+  const projectUnits = useMemo(() => {
+    let filtered = allProjectUnits;
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((u) => u.status === statusFilter);
+    }
+    if (priceFilter !== "all") {
+      const [min, max] = priceFilter.split("-").map(Number);
+      filtered = filtered.filter((u) => u.price_aed >= min && (max ? u.price_aed <= max : true));
+    }
+    return filtered;
+  }, [allProjectUnits, statusFilter, priceFilter]);
+
+  // Derived stats (from all units in group, not filtered)
   const availableBedrooms = useMemo(() => {
     const order = ["Studio", "1BR", "2BR", "3BR", "4BR", "5BR"];
-    const set = new Set(projectUnits.map((u) => u.bedrooms));
+    const set = new Set(allProjectUnits.map((u) => u.bedrooms));
     return order.filter((b) => set.has(b));
-  }, [projectUnits]);
+  }, [allProjectUnits]);
+
+  const availableViews = useMemo(() => {
+    const set = new Set(allProjectUnits.map((u) => u.view).filter(Boolean) as string[]);
+    return [...set].sort();
+  }, [allProjectUnits]);
 
   const categories = useMemo(
-    () => [...new Set(projectUnits.map((u) => u.category))],
-    [projectUnits]
+    () => [...new Set(allProjectUnits.map((u) => u.category))],
+    [allProjectUnits]
+  );
+
+  const availableCount = useMemo(
+    () => allProjectUnits.filter((u) => u.status === "Available").length,
+    [allProjectUnits]
   );
 
   const minPrice = useMemo(
-    () => (projectUnits.length > 0 ? Math.min(...projectUnits.map((u) => u.price_aed)) : 0),
-    [projectUnits]
+    () => (allProjectUnits.length > 0 ? Math.min(...allProjectUnits.map((u) => u.price_aed)) : 0),
+    [allProjectUnits]
   );
 
   const bedRange = useMemo(() => bedroomRange(availableBedrooms), [availableBedrooms]);
@@ -123,11 +149,20 @@ export default function ProjectDetailPage() {
       project: "all",
       category: categoryFilter,
       bedrooms: bedroomFilter,
-      view: "all",
+      view: viewFilter,
       search,
     }),
-    [categoryFilter, bedroomFilter, search]
+    [categoryFilter, bedroomFilter, viewFilter, search]
   );
+
+  const PRICE_RANGES = [
+    { label: "All", value: "all" },
+    { label: "Under 1M", value: "0-1000000" },
+    { label: "1M – 2M", value: "1000000-2000000" },
+    { label: "2M – 3M", value: "2000000-3000000" },
+    { label: "3M – 5M", value: "3000000-5000000" },
+    { label: "5M+", value: "5000000-0" },
+  ];
 
   if (!group) {
     return (
@@ -213,7 +248,7 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
 
-              {/* Filter Pills */}
+              {/* Filters */}
               <div className="flex flex-wrap items-center gap-4 mb-4">
                 {/* Category pills */}
                 <div className="flex items-center gap-1">
@@ -262,20 +297,67 @@ export default function ProjectDetailPage() {
                     </button>
                   ))}
                 </div>
+
+                {/* Separator */}
+                <div className="h-5 w-px bg-gray-200" />
+
+                {/* Dropdown filters */}
+                {/* View */}
+                <select
+                  value={viewFilter}
+                  onChange={(e) => setViewFilter(e.target.value)}
+                  className={`h-8 px-3 pr-7 rounded-full text-xs font-medium border appearance-none bg-no-repeat bg-[length:12px] bg-[right_8px_center] bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23666%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] transition-colors ${
+                    viewFilter !== "all"
+                      ? "bg-black text-white border-black"
+                      : "bg-gray-100 text-gray-600 border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <option value="all">View: All</option>
+                  {availableViews.map((v) => (
+                    <option key={v} value={v}>{`View: ${v}`}</option>
+                  ))}
+                </select>
+
+                {/* Status */}
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className={`h-8 px-3 pr-7 rounded-full text-xs font-medium border appearance-none bg-no-repeat bg-[length:12px] bg-[right_8px_center] bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23666%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] transition-colors ${
+                    statusFilter !== "all"
+                      ? "bg-black text-white border-black"
+                      : "bg-gray-100 text-gray-600 border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <option value="all">Status: All</option>
+                  <option value="Available">Status: Available</option>
+                  <option value="Reserved">Status: Reserved</option>
+                  <option value="Sold">Status: Sold</option>
+                </select>
+
+                {/* Price */}
+                <select
+                  value={priceFilter}
+                  onChange={(e) => setPriceFilter(e.target.value)}
+                  className={`h-8 px-3 pr-7 rounded-full text-xs font-medium border appearance-none bg-no-repeat bg-[length:12px] bg-[right_8px_center] bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23666%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] transition-colors ${
+                    priceFilter !== "all"
+                      ? "bg-black text-white border-black"
+                      : "bg-gray-100 text-gray-600 border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  {PRICE_RANGES.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.value === "all" ? "Price" : r.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Inventory Table */}
               <InventoryTable
                 units={projectUnits}
                 filters={filters}
-                onSelectUnit={setSelectedUnit}
-              />
-
-              {/* Unit Detail Modal */}
-              <UnitDetailModal
-                unit={selectedUnit}
-                open={!!selectedUnit}
-                onClose={() => setSelectedUnit(null)}
+                onSelectUnit={() => {}}
+                getUnitHref={getUnitHref}
               />
             </>
           )}

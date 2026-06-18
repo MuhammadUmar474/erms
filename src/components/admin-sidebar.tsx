@@ -2,16 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, FolderKanban, Building2, ShieldCheck } from "lucide-react";
+import { Building2, FolderKanban, LogOut } from "lucide-react";
+
+interface AdminSidebarProps {
+  onLogout: () => void;
+}
 
 const navItems = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "Projects", href: "/projects", icon: FolderKanban },
-  { label: "Inventory", href: "/inventory", icon: Building2 },
-  { label: "Admin", href: "/admin", icon: ShieldCheck },
+  { label: "Projects", href: "/admin/projects", icon: FolderKanban },
+  { label: "Units", href: "/admin/units", icon: Building2 },
 ];
 
-export default function Sidebar() {
+export default function AdminSidebar({ onLogout }: AdminSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -22,14 +24,14 @@ export default function Sidebar() {
           Reportage
         </h1>
         <p className="text-[9px] tracking-[0.25em] uppercase text-primary font-medium">
-          Properties
+          Admin Panel
         </p>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-2.5">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}
@@ -47,17 +49,21 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Bottom Branding */}
-      <div className="px-4 pb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center text-black font-bold text-sm">
-            R.
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold leading-tight">Building Communities.</p>
-            <p className="text-[10px] font-semibold leading-tight">Building Trust.</p>
-          </div>
-        </div>
+      {/* Bottom */}
+      <div className="px-2.5 pb-4">
+        <button
+          onClick={onLogout}
+          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors w-full"
+        >
+          <LogOut size={16} strokeWidth={1.5} />
+          Logout
+        </button>
+        <Link
+          href="/"
+          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] text-gray-400 hover:text-black hover:bg-gray-50 transition-colors mt-0.5"
+        >
+          &larr; Back to App
+        </Link>
       </div>
     </aside>
   );

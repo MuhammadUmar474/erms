@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
 import { Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Select,
@@ -19,6 +20,7 @@ interface InventoryTableProps {
   units: UnitWithProject[];
   filters: Filters;
   onSelectUnit: (unit: UnitWithProject) => void;
+  getUnitHref?: (unit: UnitWithProject) => string;
 }
 
 function formatNumber(n: number): string {
@@ -29,6 +31,7 @@ export default function InventoryTable({
   units,
   filters,
   onSelectUnit,
+  getUnitHref,
 }: InventoryTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("unit_number");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -211,12 +214,21 @@ export default function InventoryTable({
                       </span>
                     </td>
                     <td className="px-3 py-2">
-                      <button
-                        onClick={() => onSelectUnit(unit)}
-                        className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-black transition-colors"
-                      >
-                        <Eye size={14} />
-                      </button>
+                      {getUnitHref ? (
+                        <Link
+                          href={getUnitHref(unit)}
+                          className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-black transition-colors inline-flex"
+                        >
+                          <Eye size={14} />
+                        </Link>
+                      ) : (
+                        <button
+                          onClick={() => onSelectUnit(unit)}
+                          className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-black transition-colors"
+                        >
+                          <Eye size={14} />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))

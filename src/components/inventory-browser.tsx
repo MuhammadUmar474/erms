@@ -17,6 +17,16 @@ interface InventoryData {
   units: UnitWithProject[];
 }
 
+const MAIN_PROJECT_MATCHERS = [
+  (n: string) => /verdana/i.test(n),
+  (n: string) => /reportage\s*hills/i.test(n),
+  (n: string) => /taormina/i.test(n),
+];
+
+function isMainProject(name: string): boolean {
+  return MAIN_PROJECT_MATCHERS.some((m) => m(name));
+}
+
 const defaultFilters: Filters = {
   project: "all",
   category: "all",
@@ -78,7 +88,8 @@ export default function InventoryBrowser() {
     );
   }
 
-  const { projects, units } = data!;
+  const projects = data!.projects.filter((p) => isMainProject(p.name));
+  const units = data!.units.filter((u) => isMainProject(u.projects?.name ?? ""));
 
   return (
     <div className="space-y-4">
