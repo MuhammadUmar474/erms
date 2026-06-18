@@ -30,13 +30,26 @@ export default function InventoryBrowser() {
   const [selectedUnit, setSelectedUnit] = useState<UnitWithProject | null>(null);
 
   const fetcher = useCallback(async (): Promise<InventoryData> => {
-    const [projectsRes, unitsRes] = await Promise.all([
-      supabase.from("projects").select("*").order("name"),
-      supabase.from("units").select("*, projects(*)").order("unit_number"),
-    ]);
+    const projectsRes = await supabase.from("projects").select("*").order("name");
+    // Fetch all units (Supabase defaults to 1000 row limit)
+    const allUnits: UnitWithProject[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data, error } = await supabase
+        .from("units")
+        .select("*, projects(*)")
+        .order("unit_number")
+        .range(from, from + pageSize - 1);
+      if (error) break;
+      if (!data || data.length === 0) break;
+      allUnits.push(...(data as UnitWithProject[]));
+      if (data.length < pageSize) break;
+      from += pageSize;
+    }
     return {
       projects: (projectsRes.data as Project[]) ?? [],
-      units: (unitsRes.data as UnitWithProject[]) ?? [],
+      units: allUnits,
     };
   }, []);
 

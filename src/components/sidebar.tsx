@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, FolderKanban, ShieldCheck } from "lucide-react";
 
 const navItems = [
-  { label: "Inventory", href: "/", icon: Building2 },
+  { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Projects", href: "/projects", icon: FolderKanban },
   { label: "Admin", href: "/admin", icon: ShieldCheck },
 ];
 

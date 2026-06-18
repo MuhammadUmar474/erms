@@ -17,12 +17,23 @@ export async function getProjects() {
 }
 
 export async function getUnits() {
-  const { data, error } = await supabase
-    .from("units")
-    .select("*, projects(*)")
-    .order("unit_number");
-  if (error) throw error;
-  return data;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const all: any[][] = [];
+  let from = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data, error } = await supabase
+      .from("units")
+      .select("*, projects(*)")
+      .order("unit_number")
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    all.push(data);
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+  return all.flat();
 }
 
 export async function createProject(project: {
