@@ -20,7 +20,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="px-5 pt-5 pb-6">
         <Image
-          src="/reportage_logo.png"
+          src="/reportage_dashboard_logo.png"
           alt="Reportage"
           width={160}
           height={36}
