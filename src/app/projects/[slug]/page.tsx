@@ -1,41 +1,67 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import Sidebar from "@/components/sidebar";
-import TopBar from "@/components/top-bar";
-import InventoryTable from "@/components/inventory-table";
+import ProjectCard from "@/components/project-card";
 import { useCachedData } from "@/hooks/use-cached-data";
 import { supabase } from "@/lib/supabase";
-import { Search, RefreshCw } from "lucide-react";
+import { RefreshCw, Plus, Search, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import type { UnitWithProject } from "@/lib/types";
-import type { Filters } from "@/components/inventory-filters";
 
-const PROJECT_GROUPS: Record<string, {
-  label: string;
-  match: (n: string) => boolean;
-  location: string;
-  description: string;
-}> = {
+const PROJECT_GROUPS: Record<
+  string,
+  {
+    label: string;
+    match: (n: string) => boolean;
+    location: string;
+    description: string;
+    heroImage: string;
+    galleryImages: string[];
+  }
+> = {
   verdana: {
     label: "Verdana",
     match: (n) => /verdana/i.test(n),
     location: "Dubai Investment Park",
     description: "Mediterranean-inspired apartments & townhouses",
+    heroImage: "/verdana_property.png",
+    galleryImages: [
+      "/verdana_property.png",
+      "/verdana_property.png",
+      "/verdana_property.png",
+      "/verdana_property.png",
+    ],
   },
   "reportage-hills": {
     label: "Reportage Hills",
     match: (n) => /reportage\s*hills/i.test(n),
     location: "Dubailand",
     description: "Premium townhouses & villas",
+    heroImage: "/r_hills_properties.png",
+    galleryImages: [
+      "/r_hills_properties.png",
+      "/r_hills_properties.png",
+      "/r_hills_properties.png",
+      "/r_hills_properties.png",
+    ],
   },
   taormina: {
     label: "Taormina Village",
     match: (n) => /taormina/i.test(n),
     location: "Dubailand",
-    description: "Italian-inspired townhouse village",
+    description: "Mediterranean-inspired apartments & townhouses",
+    heroImage: "/taormina_properties.png",
+    galleryImages: [
+      "/taormina_properties.png",
+      "/taormina_properties.png",
+      "/taormina_properties.png",
+      "/taormina_properties.png",
+    ],
   },
 };
 
@@ -55,21 +81,34 @@ function bedroomRange(bedrooms: string[]): string {
   return `${sorted[0]}–${sorted[sorted.length - 1]}`;
 }
 
+function bedroomBreakdown(units: UnitWithProject[]): string {
+  const counts: Record<string, number> = {};
+  for (const u of units) {
+    counts[u.bedrooms] = (counts[u.bedrooms] || 0) + 1;
+  }
+  const order = ["Studio", "1BR", "2BR", "3BR", "4BR", "5BR"];
+  return order
+    .filter((b) => counts[b])
+    .map((b) => `${b} \u00b7 ${counts[b]}`)
+    .join(" | ");
+}
+
+interface CategoryData {
+  category: string;
+  units: UnitWithProject[];
+  unitCount: number;
+  bedroomRange: string;
+  bedroomBreakdown: string;
+  minPrice: number;
+  image: string;
+  location: string;
+  description: string;
+}
+
 export default function ProjectDetailPage() {
   const params = useParams();
   const slug = params.slug as string;
   const group = PROJECT_GROUPS[slug];
-
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [bedroomFilter, setBedroomFilter] = useState("all");
-  const [viewFilter, setViewFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("Available");
-  const [priceFilter, setPriceFilter] = useState("all");
-  const [search, setSearch] = useState("");
-  const getUnitHref = useCallback(
-    (unit: UnitWithProject) => `/projects/${slug}/${encodeURIComponent(unit.unit_number)}`,
-    [slug]
-  );
 
   const fetcher = useCallback(async () => {
     const allUnits: UnitWithProject[] = [];
@@ -95,81 +134,68 @@ export default function ProjectDetailPage() {
     fetcher,
   });
 
-  // All units in this project group
   const allProjectUnits = useMemo(() => {
     if (!allUnits || !group) return [];
     return allUnits.filter((u) => group.match(u.projects?.name ?? ""));
   }, [allUnits, group]);
 
-  // Units after status + price filter (before table handles category/bedrooms/search)
-  const projectUnits = useMemo(() => {
-    let filtered = allProjectUnits;
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((u) => u.status === statusFilter);
-    }
-    if (priceFilter !== "all") {
-      const [min, max] = priceFilter.split("-").map(Number);
-      filtered = filtered.filter((u) => u.price_aed >= min && (max ? u.price_aed <= max : true));
-    }
-    return filtered;
-  }, [allProjectUnits, statusFilter, priceFilter]);
-
-  // Derived stats (from all units in group, not filtered)
-  const availableBedrooms = useMemo(() => {
-    const order = ["Studio", "1BR", "2BR", "3BR", "4BR", "5BR"];
-    const set = new Set(allProjectUnits.map((u) => u.bedrooms));
-    return order.filter((b) => set.has(b));
-  }, [allProjectUnits]);
-
-  const availableViews = useMemo(() => {
-    const set = new Set(allProjectUnits.map((u) => u.view).filter(Boolean) as string[]);
-    return [...set].sort();
-  }, [allProjectUnits]);
-
-  const categories = useMemo(
-    () => [...new Set(allProjectUnits.map((u) => u.category))],
+  const availableUnits = useMemo(
+    () => allProjectUnits.filter((u) => u.status === "Available"),
     [allProjectUnits]
   );
 
-  const availableCount = useMemo(
-    () => allProjectUnits.filter((u) => u.status === "Available").length,
-    [allProjectUnits]
-  );
+  const availableCount = availableUnits.length;
+
+  const bedRange = useMemo(() => {
+    const beds = [...new Set(availableUnits.map((u) => u.bedrooms))];
+    return bedroomRange(beds);
+  }, [availableUnits]);
 
   const minPrice = useMemo(
-    () => (allProjectUnits.length > 0 ? Math.min(...allProjectUnits.map((u) => u.price_aed)) : 0),
-    [allProjectUnits]
+    () => (availableUnits.length > 0 ? Math.min(...availableUnits.map((u) => u.price_aed)) : 0),
+    [availableUnits]
   );
 
-  const bedRange = useMemo(() => bedroomRange(availableBedrooms), [availableBedrooms]);
+  // Group available units by category
+  const categoryData = useMemo((): CategoryData[] => {
+    const catMap = new Map<string, UnitWithProject[]>();
+    for (const u of availableUnits) {
+      const existing = catMap.get(u.category) || [];
+      existing.push(u);
+      catMap.set(u.category, existing);
+    }
 
-  // Build filters object for InventoryTable
-  const filters: Filters = useMemo(
-    () => ({
-      project: "all",
-      category: categoryFilter,
-      bedrooms: bedroomFilter,
-      view: viewFilter,
-      search,
-    }),
-    [categoryFilter, bedroomFilter, viewFilter, search]
-  );
+    const CATEGORY_DESCRIPTIONS: Record<string, string> = {
+      Apartments: "STUDIO TO 3-BEDROOM RESIDENCES WITH COMMUNITY & POOL VIEWS",
+      Townhouses: "SPACIOUS 3 & 4-BEDROOM HOMES WITH PRIVATE GARDENS & PLOTS",
+    };
 
-  const PRICE_RANGES = [
-    { label: "All", value: "all" },
-    { label: "Under 1M", value: "0-1000000" },
-    { label: "1M – 2M", value: "1000000-2000000" },
-    { label: "2M – 3M", value: "2000000-3000000" },
-    { label: "3M – 5M", value: "3000000-5000000" },
-    { label: "5M+", value: "5000000-0" },
-  ];
+    return [...catMap.entries()].map(([cat, units]) => {
+      const beds = [...new Set(units.map((u) => u.bedrooms))];
+      return {
+        category: cat,
+        units,
+        unitCount: units.length,
+        bedroomRange: bedroomRange(beds),
+        bedroomBreakdown: bedroomBreakdown(units),
+        minPrice: Math.min(...units.map((u) => u.price_aed)),
+        image: group?.heroImage ?? "",
+        location: `${group?.location ?? ""} - Dubai`,
+        description:
+          CATEGORY_DESCRIPTIONS[cat] ??
+          `${cat.toUpperCase()} IN ${group?.label.toUpperCase() ?? ""}`,
+      };
+    });
+  }, [availableUnits, group]);
 
   if (!group) {
     return (
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <TopBar title="Project Not Found" />
+          <header className="h-14 border-b border-gray-200 bg-white flex items-center px-5">
+            <h1 className="text-sm font-semibold">Project Not Found</h1>
+          </header>
           <main className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <p className="text-sm text-gray-500 mb-3">Project not found.</p>
@@ -187,181 +213,115 @@ export default function ProjectDetailPage() {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
-        <TopBar title={group.label} />
-        <main className="flex-1 p-4">
-          {/* Breadcrumb + Search */}
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="flex items-center gap-1 text-xs text-gray-400 mb-0.5">
-                <Link href="/projects" className="text-primary hover:underline">
-                  Projects
-                </Link>
-                <span>/</span>
-                <span className="text-gray-600">{group.label}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold">{group.label}</h2>
-                {isRevalidating && <RefreshCw size={14} className="text-gray-400 animate-spin" />}
-              </div>
-            </div>
+        {/* Header */}
+        <header className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-5">
+          <div className="flex items-center gap-1.5 text-sm">
+            <Link href="/projects" className="text-gray-400 hover:text-black transition-colors">
+              Projects
+            </Link>
+            <span className="text-gray-300">/</span>
+            <span className="font-semibold">{group.label}</span>
+            {isRevalidating && <RefreshCw size={14} className="text-gray-400 animate-spin ml-1" />}
+          </div>
+          <div className="flex items-center gap-3">
             <div className="relative">
-              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
               <Input
-                placeholder="Search unit no...."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 h-8 w-[200px] text-xs bg-white border-gray-200"
+                placeholder="Search Projects..."
+                className="h-9 w-52 text-xs pl-9 bg-gray-50 border-gray-200"
               />
             </div>
+            <Button size="sm" className="h-9 text-xs font-semibold gap-1.5 bg-black text-white hover:bg-black/80">
+              <Plus size={14} />
+              Add Unit
+            </Button>
           </div>
+        </header>
 
+        <main className="flex-1 p-5 overflow-y-auto">
           {isLoading ? (
             <div className="space-y-4 animate-pulse">
-              <div className="bg-gray-100 rounded-xl h-[100px]" />
-              <div className="bg-gray-100 rounded-xl h-[400px]" />
+              <div className="bg-gray-100 rounded-xl h-[280px]" />
+              <div className="bg-gray-100 rounded-xl h-[80px]" />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-100 rounded-xl h-[420px]" />
+                <div className="bg-gray-100 rounded-xl h-[420px]" />
+              </div>
             </div>
           ) : (
-            <>
+            <div className="space-y-4">
+              {/* Image Gallery */}
+              <div className="grid grid-cols-3 gap-3 h-[280px]">
+                {/* Hero image */}
+                <div className="col-span-2 relative rounded-xl overflow-hidden bg-gray-200">
+                  <Image
+                    src={group.heroImage}
+                    alt={group.label}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                {/* Thumbnails 2x2 */}
+                <div className="grid grid-cols-2 gap-3">
+                  {group.galleryImages.map((img, i) => (
+                    <div key={i} className="relative rounded-xl overflow-hidden bg-gray-200">
+                      <Image src={img} alt={`${group.label} ${i + 1}`} fill className="object-cover" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* Project Info Card */}
-              <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-                <div className="flex items-center gap-4">
-                  {/* Cover placeholder */}
-                  <div className="w-20 h-16 rounded-lg bg-gradient-to-br from-gray-200 to-gray-300 shrink-0" />
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-bold">{group.label}</h3>
-                    <p className="text-[11px] text-gray-400">
-                      {group.location} &middot; {group.description}
-                    </p>
-                  </div>
-                  {/* Stats */}
-                  <div className="hidden sm:flex items-center gap-4 shrink-0">
-                    <div className="border border-gray-200 rounded-lg px-4 py-2 text-center">
-                      <p className="text-sm font-bold">{bedRange}</p>
-                      <p className="text-[10px] text-gray-400">Bedrooms</p>
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold">{group.label}</h2>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <MapPin size={12} className="text-gray-400" />
+                      <span className="text-xs text-gray-400">
+                        {group.location} &middot; {group.description}
+                      </span>
                     </div>
-                    <div className="border border-gray-200 rounded-lg px-4 py-2 text-center">
-                      <p className="text-sm font-bold">{formatPrice(minPrice)}</p>
-                      <p className="text-[10px] text-gray-400">From</p>
+                  </div>
+                  <div className="hidden sm:flex items-center gap-6">
+                    <div className="text-center">
+                      <p className="text-xl font-bold">{availableCount}</p>
+                      <p className="text-[11px] text-gray-400">Units Available</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xl font-bold">{bedRange}</p>
+                      <p className="text-[11px] text-gray-400">Bedrooms</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xl font-bold">{formatPrice(minPrice)}</p>
+                      <p className="text-[11px] text-gray-400">From</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Filters */}
-              <div className="flex flex-wrap items-center gap-4 mb-4">
-                {/* Category pills */}
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setCategoryFilter("all")}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                      categoryFilter === "all"
-                        ? "bg-black text-white border-black"
-                        : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    All
-                  </button>
-                  {categories.map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => setCategoryFilter(categoryFilter === cat ? "all" : cat)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                        categoryFilter === cat
-                          ? "bg-black text-white border-black"
-                          : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Separator */}
-                <div className="h-5 w-px bg-gray-200" />
-
-                {/* Bedroom pills */}
-                <div className="flex items-center gap-1">
-                  <span className="text-[11px] text-gray-400 mr-0.5">Beds</span>
-                  {availableBedrooms.map((bed) => (
-                    <button
-                      key={bed}
-                      onClick={() => setBedroomFilter(bedroomFilter === bed ? "all" : bed)}
-                      className={`px-2.5 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                        bedroomFilter === bed
-                          ? "bg-black text-white border-black"
-                          : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      {bed}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Separator */}
-                <div className="h-5 w-px bg-gray-200" />
-
-                {/* Dropdown filters */}
-                {/* View */}
-                <select
-                  value={viewFilter}
-                  onChange={(e) => setViewFilter(e.target.value)}
-                  className={`h-8 px-3 pr-7 rounded-full text-xs font-medium border appearance-none bg-no-repeat bg-[length:12px] bg-[right_8px_center] bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23666%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] transition-colors ${
-                    viewFilter !== "all"
-                      ? "bg-black text-white border-black"
-                      : "bg-gray-100 text-gray-600 border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <option value="all">View: All</option>
-                  {availableViews.map((v) => (
-                    <option key={v} value={v}>{`View: ${v}`}</option>
-                  ))}
-                </select>
-
-                {/* Status */}
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className={`h-8 px-3 pr-7 rounded-full text-xs font-medium border appearance-none bg-no-repeat bg-[length:12px] bg-[right_8px_center] bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23666%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] transition-colors ${
-                    statusFilter !== "all"
-                      ? "bg-black text-white border-black"
-                      : "bg-gray-100 text-gray-600 border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <option value="all">Status: All</option>
-                  <option value="Available">Status: Available</option>
-                  <option value="Reserved">Status: Reserved</option>
-                  <option value="Sold">Status: Sold</option>
-                </select>
-
-                {/* Price */}
-                <select
-                  value={priceFilter}
-                  onChange={(e) => setPriceFilter(e.target.value)}
-                  className={`h-8 px-3 pr-7 rounded-full text-xs font-medium border appearance-none bg-no-repeat bg-[length:12px] bg-[right_8px_center] bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23666%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] transition-colors ${
-                    priceFilter !== "all"
-                      ? "bg-black text-white border-black"
-                      : "bg-gray-100 text-gray-600 border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  {PRICE_RANGES.map((r) => (
-                    <option key={r.value} value={r.value}>
-                      {r.value === "all" ? "Price" : r.label}
-                    </option>
-                  ))}
-                </select>
+              {/* Category Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {categoryData.map((cat) => (
+                  <ProjectCard
+                    key={cat.category}
+                    href={`/projects/${slug}/${cat.category.toLowerCase()}`}
+                    image={cat.image}
+                    typeBadge={cat.category}
+                    unitCount={cat.unitCount}
+                    title={group.label}
+                    location={cat.location}
+                    description={cat.description}
+                    bedroomRange={cat.bedroomRange}
+                    fromPrice={formatPrice(cat.minPrice)}
+                    buttonLabel={`View ${cat.category} Units`}
+                  />
+                ))}
               </div>
-
-              {/* Inventory Table */}
-              <InventoryTable
-                units={projectUnits}
-                filters={filters}
-                onSelectUnit={() => {}}
-                getUnitHref={getUnitHref}
-              />
-            </>
+            </div>
           )}
         </main>
+
         <footer className="border-t border-gray-200 bg-white px-4 py-2 flex items-center justify-between text-[10px] text-gray-400">
           <span>&copy; 2026 Reportage Properties. All rights reserved.</span>
           <span>All information is subject to change without notice.</span>

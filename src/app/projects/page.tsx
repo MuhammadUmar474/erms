@@ -1,13 +1,11 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import Link from "next/link";
-import Image from "next/image";
 import Sidebar from "@/components/sidebar";
-import TopBar from "@/components/top-bar";
+import ProjectCard from "@/components/project-card";
 import { useCachedData } from "@/hooks/use-cached-data";
 import { supabase } from "@/lib/supabase";
-import { RefreshCw, MapPin, Plus, Search } from "lucide-react";
+import { RefreshCw, Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { Project, UnitWithProject } from "@/lib/types";
@@ -146,71 +144,19 @@ export default function ProjectsPage() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {groupData.map((group) => (
-                <div
+                <ProjectCard
                   key={group.label}
-                  className="bg-white rounded-[10px] border border-gray-200 overflow-hidden flex flex-col shadow-sm max-w-[354px] h-[416px]"
-                >
-                  {/* Cover image */}
-                  <div className="relative h-48 bg-gray-200 overflow-hidden">
-                    <Image
-                      src={group.image}
-                      alt={group.label}
-                      fill
-                      className="object-cover"
-                    />
-                    {/* Gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-                    {/* Type badge - top left */}
-                    <span className="absolute top-3 left-3 text-[10px] font-medium bg-[#F9FAFB] text-black px-[5px] py-[3px] rounded-2xl">
-                      {group.typeLabel}
-                    </span>
-
-                    {/* Unit count badge - top right */}
-                    <span className="absolute top-3 right-3 text-[10px] font-semibold bg-[#FFBE00] text-black px-[5px] py-[3px] rounded-2xl">
-                      {group.unitCount} units
-                    </span>
-
-                    {/* Project name & location - bottom left */}
-                    <div className="absolute bottom-3 left-3">
-                      <h3 className="text-white text-base font-bold">{group.label}</h3>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <MapPin size={10} className="text-primary" />
-                        <span className="text-[11px] text-white/80">{group.location}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Info */}
-                  <div className="p-4 flex-1 flex flex-col">
-                    <p className="text-sm font-bold text-gray-800 leading-snug line-clamp-2 min-h-[2.5rem]">
-                      {group.description}
-                    </p>
-
-                    {/* Stats: Bedrooms & From */}
-                    <div className="flex gap-2 mt-3">
-                      <div className="flex-1 bg-gray-100 rounded-lg px-3 py-2.5">
-                        <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Bedrooms</p>
-                        <p className="text-sm font-bold">{group.bedroomRange}</p>
-                      </div>
-                      <div className="flex-1 bg-gray-100 rounded-lg px-3 py-2.5">
-                        <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">From</p>
-                        <p className="text-sm font-bold">{formatPrice(group.minPrice)}</p>
-                      </div>
-                    </div>
-
-                    {/* Separator */}
-                    <div className="border-t border-gray-200 mt-3" />
-
-                    {/* View Units Button */}
-                    <Link
-                      href={`/projects/${group.slug}`}
-                      className="mt-3 flex items-center justify-center gap-2.5 bg-primary text-black text-sm font-bold h-10 rounded-md hover:bg-primary/90 transition-colors"
-                    >
-                      View Units &rarr;
-                    </Link>
-                  </div>
-                </div>
+                  href={`/projects/${group.slug}`}
+                  image={group.image}
+                  typeBadge={group.typeLabel}
+                  unitCount={group.unitCount}
+                  title={group.label}
+                  location={group.location}
+                  description={group.description}
+                  bedroomRange={group.bedroomRange}
+                  fromPrice={formatPrice(group.minPrice)}
+                  buttonLabel="View Units"
+                />
               ))}
 
               {/* Add New Project Card */}
@@ -223,7 +169,7 @@ export default function ProjectsPage() {
                 <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-3">
                   <Plus size={24} className="text-primary" />
                 </div>
-                <p className="text-sm font-medium text-gray-500">Add a new project</p>
+                <p className="text-lg font-semibold text-black">Add a new project</p>
               </div>
             </div>
           )}
