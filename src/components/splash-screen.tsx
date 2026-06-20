@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 
 export default function SplashScreen({ children }: { children: React.ReactNode }) {
   const [phase, setPhase] = useState<"splash" | "fading" | "done">("splash");
@@ -10,11 +11,9 @@ export default function SplashScreen({ children }: { children: React.ReactNode }
     if (started.current) return;
     started.current = true;
 
-    // Hold splash for 2.5 seconds
     setTimeout(() => {
       setPhase("fading");
 
-      // Then fade out over 600ms
       setTimeout(() => {
         setPhase("done");
       }, 600);
@@ -41,34 +40,40 @@ export default function SplashScreen({ children }: { children: React.ReactNode }
             opacity: phase === "fading" ? 0 : 1,
             transition: "opacity 600ms ease-out",
           }}
-          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black"
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white overflow-hidden"
         >
+          {/* Center content */}
           <div
             style={{
               transform: phase === "fading" ? "scale(0.95)" : "scale(1)",
               opacity: phase === "fading" ? 0 : 1,
               transition: "all 700ms ease-out",
             }}
-            className="flex flex-col items-center"
+            className="relative flex flex-col items-center"
           >
-            <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center text-black font-bold text-2xl mb-6 shadow-lg shadow-primary/20">
-              R.
-            </div>
-            <h1 className="text-2xl font-bold tracking-wider uppercase text-white mb-1">
-              Reportage
-            </h1>
-            <p className="text-[11px] tracking-[0.3em] uppercase text-primary font-medium">
-              Properties
+            <Image
+              src="/r_logo.png"
+              alt="Reportage"
+              width={510}
+              height={310}
+              priority
+              className="object-contain"
+            />
+          </div>
+
+          {/* Bottom section */}
+          <div className="absolute bottom-6 flex flex-col items-center">
+            <Image
+              src="/reportage_logo.png"
+              alt="Reportage"
+              width={230}
+              height={45}
+              className="object-contain opacity-40 -mb-10"
+            />
+            <p className="text-[11px] text-gray-400 tracking-wide">
+              Copyright &copy; 2026 Reportage Group. All rights reserved
             </p>
           </div>
-
-          <div className="mt-10 w-32 h-0.5 bg-white/10 rounded-full overflow-hidden">
-            <div className="h-full bg-primary rounded-full animate-[splash-bar_2.5s_ease-in-out_forwards]" />
-          </div>
-
-          <p className="mt-6 text-[10px] text-white/30 tracking-wide">
-            Estate Management System
-          </p>
         </div>
       )}
     </>
